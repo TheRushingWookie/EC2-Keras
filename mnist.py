@@ -119,13 +119,13 @@ def create_model():
     
     model.save_weights(temp_file_name,overwrite=True)
     with open(temp_file_name) as f:
-        store_to_s3(str(int(time.time())), f.read())
+        store_to_s3(str(int(time.time())),'kerasmodels', f.read())
         
 
 def load_model():
-    items = get_bucket_items()
+    items = get_bucket_items('kerasmodels')
     newest_item = max(map(int,items))
-    model_weights = get_from_s3(str(newest_item))
+    model_weights = get_from_s3(str(newest_item), 'kerasmodels')
     print("loading model")
     with open('./current.weights', 'w') as f:
         f.write(model_weights)
@@ -146,7 +146,7 @@ def check_for_early_shutdown():
 def save_data():
     model.save_weights(temp_file_name, overwrite=True)
     with open(temp_file_name, 'r') as f:
-        store_to_s3(str(int(time.time())),f.read())
+        store_to_s3(str(int(time.time())),'kerasmodels', f.read())
 
 def train():
     
@@ -190,6 +190,7 @@ def nice_imshow(ax, data, vmin=None, vmax=None, cmap=None):
     im = ax.imshow(data, vmin=vmin, vmax=vmax, interpolation='nearest', cmap=cmap)
     plt.colorbar(im)
     plt.show()
+
 def predict():
     import pylab as pl
     import matplotlib.pyplot as plt
@@ -207,6 +208,9 @@ def predict():
     i = 4600
     # Visualize the first layer of convolutions on an input image
     X = X_test[i:i+1]
+    plt.figure()
+    plt.title('input')
+    nice_imshow(plt.gca(), np.squeeze(X), vmin=0, vmax=1, cmap=cm.binary)
     C1 = convout1_f(X)
     C1 = np.squeeze(C1)
     print("C1 shape : ", C1.shape)
@@ -214,8 +218,7 @@ def predict():
     plt.figure(figsize=(15, 15))
     plt.suptitle('convout1')
     nice_imshow(plt.gca(), make_mosaic(C1, 6, 6), cmap=cm.binary)
-    import pdb; pdb.set_trace()  # breakpoint 53015afe //
-    
+
 #create_model()
 load_model()
 #train()
