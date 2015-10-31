@@ -4,6 +4,7 @@ from boto.s3.key import Key
 from boto.s3.lifecycle import Lifecycle, Transition, Rule
 import os
 import StringIO
+import requests
 
 access_key = os.environ['AWS_ACCESS_KEY']
 secret_key = os.environ['AWS_SECRET_KEY']

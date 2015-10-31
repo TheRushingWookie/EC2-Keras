@@ -14,7 +14,7 @@ from os import listdir
 from os.path import isfile, join
 import numpy as np
 from PIL import Image
-from worker import store_to_s3, get_from_s3, get_bucket_items
+from worker import store_to_s3, get_from_s3, get_bucket_items, shutdown_spot_request
 import tempfile
 import time
 import StringIO
@@ -166,6 +166,7 @@ model.add(Activation('softmax'))
 
 print("compiling")
 mode = 'FAST_COMPILE' if debug_mode else 'FAST_RUN'
+print("Using %s mode" % mode)
 model.compile(loss='categorical_crossentropy', optimizer='adadelta', theano_mode=mode)
 bucket_name = "catsvsdogs"
 class LossHistory(keras.callbacks.Callback):
@@ -251,7 +252,7 @@ def train():
     model.fit(X_train, Y_train, batch_size=batch_size, nb_epoch=nb_epoch, show_accuracy=True, verbose=1, validation_data=(X_test, Y_test),callbacks=[history])
     score = model.evaluate(X_test, Y_test, show_accuracy=True, verbose=0)
     if debug_mode is None:
-        worker.shutdown_spot_request()
+        shutdown_spot_request()
 import numpy.ma as ma
 def make_mosaic(imgs, nrows, ncols, border=1):
     """
