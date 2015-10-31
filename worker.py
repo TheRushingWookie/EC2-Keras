@@ -53,11 +53,11 @@ def get_bucket_items(bucket_name):
     return [ key.name.encode('utf-8') for key in bucket.list()]
 
 def shutdown_spot_request():
-    self_id = requests.get('http://instance-data/latest/meta-data/public-ipv4').text
+    self_id = requests.get('http://instance-data/latest/meta-data/instance-id').text
     spot_reqs = ec2conn.get_all_spot_instance_requests()
     for spot_req in spot_reqs:
+        print spot_req.instance_id, self_id
         if spot_req.instance_id == self_id:
-            ec2conn.cancel_spot_instance_requests([spot_req.id,])
             ec2conn.stop_instances(instance_ids=[self_id,])
             return
 

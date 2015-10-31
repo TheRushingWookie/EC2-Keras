@@ -175,23 +175,27 @@ class LossHistory(keras.callbacks.Callback):
         self.best_lost = 9239129
         self.i = 0
 
+    def on_epoch_end(self, epoch, logs={}):
+        if epoch == nb_epoch:
+            shutdown_spot_request()
+        loss = logs.get('val_loss')
+        if loss < self.best_lost:
+            self.i += 1
+            print(self.i)
+            print("%s new best loss is %s" % (self.i, loss))
+            self.best_lost = loss
+            if self.i % 7 == 0:
+                save_data()
+                save_email_data = startup_data
+                save_email_data['html'] = "new loss is %s" % loss
+                save_email_data['subject'] = "New saved!"
+                if debug_mode is None:
+                    requests.post(sendgrid_url, data=save_email_data, headers=authent_header)
 
     def on_batch_end(self, batch, logs={}):
         self.losses.append(logs.get('loss'))
         check_for_early_shutdown()
-        if logs.get('loss') < self.best_lost:
-
-            self.i += 1
-            print(self.i)
-            print("%s new best loss is %s" % (self.i, logs.get('loss')))
-            self.best_lost = logs.get('loss')
-            if self.i % 7 == 0:
-                save_data()
-                save_email_data = startup_data
-                save_email_data['html'] = "new loss is %s" % logs.get('loss')
-                save_email_data['subject'] = "New saved!"
-                if debug_mode is None:
-                    requests.post(sendgrid_url, data=save_email_data, headers=authent_header)
+        
 def create_model():
     # the data, shuffled and split between tran and test sets
     (X_train, y_train), (X_test, y_test) = load_data()
@@ -249,7 +253,7 @@ def train():
     # (std, mean, and principal components if ZCA whitening is applied)
     #checkpointer = ModelCheckpoint(filepath="/Users/quinnjarrell/Desktop/Experiments/keras/saved/", verbose=1, save_best_only=True)
     history = LossHistory()
-    model.fit(X_train, Y_train, batch_size=batch_size, nb_epoch=nb_epoch, show_accuracy=True, verbose=1, validation_data=(X_test, Y_test),callbacks=[history])
+    model.fit(X_train, Y_train, batch_size=batch_size, nb_epoch=100000, show_accuracy=True, verbose=1, validation_data=(X_test, Y_test),callbacks=[history])
     score = model.evaluate(X_test, Y_test, show_accuracy=True, verbose=0)
     if debug_mode is None:
         shutdown_spot_request()
