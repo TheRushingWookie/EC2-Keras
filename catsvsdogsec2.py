@@ -180,12 +180,12 @@ class LossHistory(keras.callbacks.Callback):
             shutdown_spot_request()
         loss = logs.get('val_loss')
         print("%s loss is %s" % (self.i, loss))
-        self.i += 1
+       
         if loss < self.best_lost:
-            
+            self.i += 1
             print(self.i)
             self.best_lost = loss
-            if self.i % 7 == 0:
+            if self.i % 3 == 0:
                 save_data()
                 save_email_data = startup_data
                 save_email_data['html'] = "new loss is %s" % loss

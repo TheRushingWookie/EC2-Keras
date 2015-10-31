@@ -58,6 +58,7 @@ def shutdown_spot_request():
     for spot_req in spot_reqs:
         print spot_req.instance_id, self_id
         if spot_req.instance_id == self_id:
-            ec2conn.stop_instances(instance_ids=[self_id,])
+            ec2conn.cancel_spot_instance_requests([spot_req.id,])
+            #ec2conn.stop_instances(instance_ids=[self_id,])
             return
 
