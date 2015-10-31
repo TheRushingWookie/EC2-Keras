@@ -181,7 +181,8 @@ class LossHistory(keras.callbacks.Callback):
         if logs.get('loss') < self.best_lost:
 
             self.i += 1
-            print("%s new best loss %s" % (self.i, logs.get('loss')))
+            print(self.i)
+            print("%s new best loss is %s" % (self.i, logs.get('loss')))
             self.best_lost = logs.get('loss')
             if self.i % 7 == 0:
                 save_data()
