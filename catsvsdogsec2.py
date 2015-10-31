@@ -328,8 +328,8 @@ def predict():
     plt.suptitle('convout1')
     #nice_imshow(plt.gca(), make_mosaic(C1, 6, 6), cmap=cm.binary)
 
-create_model()
-#load_model()
-#train()
+#create_model()
+load_model()
+train()
 #predict()
 
