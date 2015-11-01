@@ -64,15 +64,7 @@ image_dimensions = 3
 def load_data():
     image_path = os.environ['DATA_PATH']
     onlyfiles = [ f for f in listdir(image_path) if isfile(join(image_path,f)) and f != '.DS_Store']
-    
-    nb_train_samples = 9000#min(int(len(onlyfiles) * 0.8), max_num_data)
-    nb_test_samples = 500#min(int(len(onlyfiles) - (len(onlyfiles) * 0.8)), max_num_data)
 
-    X_train = np.zeros((nb_train_samples, 3, 32, 32), dtype="uint8")
-    y_train = np.zeros((nb_train_samples,), dtype="uint8")
-
-    X_test = np.zeros((nb_test_samples, 3, 32, 32), dtype="uint8")
-    y_test = np.zeros((nb_test_samples,), dtype="uint8")
     cat_imgs = []#np.zeros((nb_test_samples, 3, 32, 32), dtype="uint8")
     dog_imgs = []#np.zeros((nb_test_samples, 3, 32, 32), dtype="uint8")
     i = 0
@@ -83,26 +75,46 @@ def load_data():
             cat_imgs.append(file_name) #X_train[i]
         else:
             dog_imgs.append(file_name) #X_train[i]
+    samples = len(zip(cat_imgs, dog_imgs))
+    nb_train_samples = int(len(samples) * 0.6)
+    nb_test_samples = int(len(samples) * 0.2)
 
+
+    X_train = np.zeros((nb_train_samples, 3, 32, 32), dtype="uint8")
+    y_train = np.zeros((nb_train_samples,), dtype="uint8")
+
+    X_test = np.zeros((nb_test_samples, 3, 32, 32), dtype="uint8")
+    y_test = np.zeros((nb_test_samples,), dtype="uint8")
+    index = 0
     for i in range(nb_train_samples):
-        file_name = cat_imgs[i] if i % 2 == 0 else dog_imgs[i]
-        full_name = join(image_path, file_name)
-        pic = Image.open(full_name)
-        y_train[i] = i % 2 == 0
-        X_train[i] = img_to_array(pic)
-        pic.close()
-
-    cat_slice = cat_imgs[nb_train_samples:]
-    dog_slice = dog_imgs[nb_train_samples:]
+        cat_file, dog_file = samples[i]
+        cat_full_file = join(image_path, cat_file)
+        cat_pic = Image.open(cat_full_file)
+        y_train[i] = 1
+        X_train[i] = img_to_array(cat_pic)
+        cat_pic.close()
+        index += 1
+        dog_full_file = join(image_path, dog_file)
+        dog_pic = Image.open(dog_full_file)
+        y_train[i] = 0
+        X_train[i] = img_to_array(dog_pic)
+        dog_pic.close()
+        index += 1
+    index = 0
     for i in range(nb_test_samples):
-        file_name = cat_slice[i] if i % 2 == 0 else dog_slice[i]
-        full_name = join(image_path, file_name)
-        pic = Image.open(full_name)
-        y_test[i] = i % 2 == 0
-        #print( i % 2 == 0)        
-        X_test[i] = img_to_array(pic)
-        pic.close()
-
+        cat_file, dog_file = samples[nb_train_samples:i]
+        cat_full_file = join(image_path, cat_file)
+        cat_pic = Image.open(cat_full_file)
+        y_test[i] = 1
+        X_test[i] = img_to_array(cat_pic)
+        cat_pic.close()
+        index += 1
+        dog_full_file = join(image_path, dog_file)
+        dog_pic = Image.open(dog_full_file)
+        y_test[i] = 0
+        X_test[i] = img_to_array(dog_pic)
+        dog_pic.close()
+        index += 1
     """for file_name in onlyfiles[nb_train_samples:]:
         full_name = join(image_path, file_name)
         if i == nb_test_samples:
@@ -179,13 +191,15 @@ class LossHistory(keras.callbacks.Callback):
         if epoch == nb_epoch:
             shutdown_spot_request()
         loss = logs.get('val_loss')
-        print("%s loss is %s" % (self.i, loss))
+        print("%s loss is %s. Current best lost is %s" % (self.i, loss, self.best_lost))
        
         if loss < self.best_lost:
+            print("%s new BEST loss is %s" % (self.i, loss))
             self.i += 1
             print(self.i)
             self.best_lost = loss
-            if self.i % 3 == 0:
+            if self.i % 2 == 0:
+                print("Saving data")
                 save_data()
                 save_email_data = startup_data
                 save_email_data['html'] = "new loss is %s" % loss
