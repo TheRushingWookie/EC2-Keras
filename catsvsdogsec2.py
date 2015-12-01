@@ -14,13 +14,14 @@ from os import listdir
 from os.path import isfile, join
 import numpy as np
 from PIL import Image
-from worker import store_to_s3, get_from_s3, get_bucket_items, shutdown_spot_request
+from worker import store_to_s3, get_from_s3, get_bucket_items, shutdown_spot_request, check_for_early_shutdown
 import tempfile
 import time
 import StringIO
 import requests
 import theano
 import os
+
 '''
     Train a (fairly simple) deep CNN on the CIFAR10 small images dataset.
     GPU run command:
@@ -214,7 +215,8 @@ class LossHistory(keras.callbacks.Callback):
         self.i = 0
 
     def on_epoch_end(self, epoch, logs={}):
-        if epoch == nb_epoch:
+        if check_for_early_shutdown():
+            save_data()
             shutdown_spot_request()
         loss = logs.get('val_loss')
         print("%s loss is %s. Current best lost is %s" % (self.i, loss, self.best_lost))
@@ -235,7 +237,9 @@ class LossHistory(keras.callbacks.Callback):
 
     def on_batch_end(self, batch, logs={}):
         self.losses.append(logs.get('loss'))
-        check_for_early_shutdown()
+        if check_for_early_shutdown():
+            save_data()
+            shutdown_spot_request()
         
 def create_model():
     # the data, shuffled and split between tran and test sets
@@ -266,27 +270,15 @@ def load_model():
         f.write(model_weights)
 
     model.load_weights("./current.weights")
-
-
-shutdown_data = startup_data
-shutdown_data['html'] = "Shutting down cats vs dogs"
-shutdown_data['subject'] = "Early shutdown" 
-def check_for_early_shutdown():
-    try:
-        resp = requests.get("http://169.254.169.254/latest/meta-data/spot/termination-time", timeout=0.1)
-        if resp.status == 200:
-            save_data() 
-            if debug_mode is None:
-                requests.post(sendgrid_url, data=shutdown_data, headers=authent_header)
-            return 
-    except:
-        pass
     
 
 def save_data():
     model.save_weights(temp_file_name, overwrite=True)
-    with open(temp_file_name, 'r') as f:
-        store_to_s3(str(int(time.time())), bucket_name, f.read())
+    if not debug_mode:
+        with open(temp_file_name, 'r') as f:
+            store_to_s3(str(int(time.time())), bucket_name, f.read())
+    else:
+        print("Not saving to S3, since we're in debug mode.")
 
 def train():
     
@@ -297,6 +289,7 @@ def train():
     model.fit(X_train, Y_train, batch_size=batch_size, nb_epoch=100000, show_accuracy=True, verbose=1, validation_data=(X_test, Y_test),callbacks=[history])
     score = model.evaluate(X_test, Y_test, show_accuracy=True, verbose=0)
     if debug_mode is None:
+        save_data()
         shutdown_spot_request()
 import numpy.ma as ma
 def make_mosaic(imgs, nrows, ncols, border=1):
