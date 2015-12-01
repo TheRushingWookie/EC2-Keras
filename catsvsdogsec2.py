@@ -207,7 +207,7 @@ print("compiling")
 mode = 'FAST_COMPILE' if debug_mode else 'FAST_RUN'
 print("Using %s mode" % mode)
 model.compile(loss='categorical_crossentropy', optimizer='adadelta', theano_mode=mode)
-bucket_name = "catsvsdogs"
+bucket_name = os.environ.get("BUCKET")
 class LossHistory(keras.callbacks.Callback):
     def on_train_begin(self, logs={}):
         self.losses = []
