@@ -75,44 +75,65 @@ def load_data():
             cat_imgs.append(file_name) #X_train[i]
         else:
             dog_imgs.append(file_name) #X_train[i]
-    samples = len(zip(cat_imgs, dog_imgs))
+    samples = zip(cat_imgs, dog_imgs)
     nb_train_samples = int(len(samples) * 0.6)
     nb_test_samples = int(len(samples) * 0.2)
+    nb_valid_samples = int(len(samples) - nb_test_samples - nb_train_samples)
 
+    X_train = np.zeros((nb_train_samples * 2, 3, 32, 32), dtype="uint8")
+    y_train = np.zeros((nb_train_samples * 2,), dtype="uint8")
 
-    X_train = np.zeros((nb_train_samples, 3, 32, 32), dtype="uint8")
-    y_train = np.zeros((nb_train_samples,), dtype="uint8")
+    X_test = np.zeros((nb_test_samples * 2, 3, 32, 32), dtype="uint8")
+    y_test = np.zeros((nb_test_samples * 2,), dtype="uint8")
 
-    X_test = np.zeros((nb_test_samples, 3, 32, 32), dtype="uint8")
-    y_test = np.zeros((nb_test_samples,), dtype="uint8")
+    X_valid = np.zeros((nb_valid_samples * 2, 3, 32, 32), dtype="uint8")
+    y_valid = np.zeros((nb_valid_samples * 2,), dtype="uint8")
+
     index = 0
     for i in range(nb_train_samples):
         cat_file, dog_file = samples[i]
         cat_full_file = join(image_path, cat_file)
         cat_pic = Image.open(cat_full_file)
-        y_train[i] = 1
-        X_train[i] = img_to_array(cat_pic)
+        y_train[index] = 1
+        X_train[index] = img_to_array(cat_pic)
         cat_pic.close()
         index += 1
         dog_full_file = join(image_path, dog_file)
         dog_pic = Image.open(dog_full_file)
-        y_train[i] = 0
-        X_train[i] = img_to_array(dog_pic)
+        y_train[index] = 0
+        X_train[index] = img_to_array(dog_pic)
         dog_pic.close()
         index += 1
+
     index = 0
     for i in range(nb_test_samples):
-        cat_file, dog_file = samples[nb_train_samples:i]
+        cat_file, dog_file = samples[nb_train_samples + i]
         cat_full_file = join(image_path, cat_file)
         cat_pic = Image.open(cat_full_file)
-        y_test[i] = 1
-        X_test[i] = img_to_array(cat_pic)
+        y_test[index] = 1
+        X_test[index] = img_to_array(cat_pic)
         cat_pic.close()
         index += 1
         dog_full_file = join(image_path, dog_file)
         dog_pic = Image.open(dog_full_file)
-        y_test[i] = 0
-        X_test[i] = img_to_array(dog_pic)
+        y_test[index] = 0
+        X_test[index] = img_to_array(dog_pic)
+        dog_pic.close()
+        index += 1
+
+    index = 0
+    for i in range(nb_valid_samples):
+        cat_file, dog_file = samples[nb_train_samples + nb_test_samples + i]
+        cat_full_file = join(image_path, cat_file)
+        cat_pic = Image.open(cat_full_file)
+        y_valid[index] = 1
+        X_valid[index] = img_to_array(cat_pic)
+        cat_pic.close()
+        index += 1
+        dog_full_file = join(image_path, dog_file)
+        dog_pic = Image.open(dog_full_file)
+        y_valid[index] = 0
+        X_valid[index] = img_to_array(dog_pic)
         dog_pic.close()
         index += 1
     """for file_name in onlyfiles[nb_train_samples:]:
@@ -132,16 +153,21 @@ def load_data():
 
     y_test = np.reshape(y_test, (len(y_test), 1))
 
+    y_valid = np.reshape(y_valid, (len(y_valid), 1))
+
     X_train = X_train.astype("float32")
     X_test = X_test.astype("float32")
+    X_valid = X_valid.astype("float32")
+
     X_train /= 255
     X_test /= 255
-
-    return (X_train, y_train), (X_test, y_test)
+    X_valid /= 255
+    
+    return (X_train, y_train), (X_test, y_test), (X_valid, y_valid)
 
 # the data, shuffled and split between tran and test sets
 print("Loading training data")
-(X_train, y_train), (X_test, y_test) = load_data()
+(X_train, y_train), (X_test, y_test), (X_valid, y_valid)= load_data()
 print('X_train shape:', X_train.shape)
 print(X_train.shape[0], 'train samples')
 print(X_test.shape[0], 'test samples')
@@ -213,7 +239,7 @@ class LossHistory(keras.callbacks.Callback):
         
 def create_model():
     # the data, shuffled and split between tran and test sets
-    (X_train, y_train), (X_test, y_test) = load_data()
+    (X_train, y_train), (X_test, y_test), (X_valid, y_valid) = load_data()
     print('X_train shape:', X_train.shape)
     print(X_train.shape[0], 'train samples')
     print(X_test.shape[0], 'test samples')
@@ -315,8 +341,7 @@ def predict():
     import matplotlib.cm as cm
     np.set_printoptions(precision=5, suppress=True)
     convout1_f = theano.function([model.get_input(train=False)], convout1.get_output(train=False))
-    print("It is of category ", model.predict(X_test[50:55]))
-    print(Y_test[50:55])
+    print("Tests ", model.predict(X_valid[:10]), y_valid[:10])
     import pdb; pdb.set_trace()  # breakpoint 8d9fb711 //
 
     Y_pred = model.predict(X_test)
