@@ -60,7 +60,6 @@ def get_spot_instance_request(instance_id, any_req=False):
     if any_req:
         return spot_reqs[0]
     for spot_req in spot_reqs:
-        print spot_req.instance_id, self_id
         if spot_req.instance_id == instance_id:
             return spot_req
 
